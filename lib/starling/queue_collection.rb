@@ -32,18 +32,21 @@ module StarlingServer
     ##
     # Puts +data+ onto the queue named +key+
 
-    def put(key, data)
+    def put(key, data, return_length = false)
       queue = queues(key)
       return nil unless queue
 
       @stats[:current_bytes] += data.size
       @stats[:total_items] += 1
 
-      queue.push(data)
-
-      return true
+      if return_length
+        queue.push(data, true, true)
+      else
+      	queue.push(data)
+        return true
+      end
     end
-
+    
     ##
     # Retrieves data from the queue named +key+
 

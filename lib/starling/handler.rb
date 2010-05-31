@@ -20,6 +20,7 @@ module StarlingServer
     # SET Responses
     SET_COMMAND = /\Aset (.{1,250}) ([0-9]+) ([0-9]+) ([0-9]+)\r\n/m
     SET_RESPONSE_SUCCESS  = "STORED\r\n".freeze
+    SET_RESPONSE_SUCCESS_WITH_LENGTH  = "STORED %d\r\n".freeze
     SET_RESPONSE_FAILURE  = "NOT STORED\r\n".freeze
     SET_CLIENT_DATA_ERROR = "CLIENT_ERROR bad data chunk\r\nERROR\r\n".freeze
     
@@ -82,6 +83,7 @@ STAT queue_%s_age %d\r\n".freeze
       @server.stats[:total_connections] += 1
       set_comm_inactivity_timeout @opts[:timeout]
       @queue_collection = @opts[:queue]
+      @return_length = @opts[:return_queue_length]
 
       @session_id = @@next_session_id
       @@next_session_id += 1
@@ -170,10 +172,19 @@ STAT queue_%s_age %d\r\n".freeze
       @expected_length = nil
 
       internal_data = [expiry.to_i, data].pack(DATA_PACK_FMT)
-      if @queue_collection.put(key, internal_data)
-        respond SET_RESPONSE_SUCCESS
+      
+      if @return_length
+      	if length = @queue_collection.put(key, internal_data, true)
+          respond sprintf(SET_RESPONSE_SUCCESS_WITH_LENGTH, length)
+        else
+          respond SET_RESPONSE_FAILURE
+        end
       else
-        respond SET_RESPONSE_FAILURE
+        if @queue_collection.put(key, internal_data)
+          respond SET_RESPONSE_SUCCESS
+        else
+          respond SET_RESPONSE_FAILURE
+        end
       end
     end
 

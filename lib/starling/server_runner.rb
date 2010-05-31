@@ -152,6 +152,10 @@ module StarlingServer
           options[:timeout] = timeout
         end
 
+        opts.on("-ql", "Return queue length in response on put") do
+          options[:return_queue_length] = true
+        end
+
         opts.separator ""; opts.separator "Miscellaneous:"
 
         opts.on_tail("-?", "--help", "Display this usage information.") do

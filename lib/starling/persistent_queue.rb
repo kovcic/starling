@@ -36,13 +36,14 @@ module StarlingServer
       super()
       @initial_bytes = replay_transaction_log(debug)
       @current_age = 0
+      @semaphore = Mutex.new
     end
 
     ##
     # Pushes +value+ to the queue. By default, +push+ will write to the
     # transactional log. Set +log_trx=false+ to override this behaviour.
 
-    def push(value, log_trx = true)
+    def push(value, log_trx = true, return_length = false)
       if log_trx
         raise NoTransactionLog unless @trx
         size = [value.size].pack("I")
@@ -50,9 +51,16 @@ module StarlingServer
       end
 
       @total_items += 1
-      super([now_usec, value])
+      if return_length
+    	@semaphore.synchronize {
+          super([now_usec, value])
+          length
+    	}
+      else
+        super([now_usec, value])
+      end
     end
-
+    
     ##
     # Retrieves data from the queue.
 
